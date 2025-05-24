@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.vscode/ # VS Code specific files
+.idea/ # PyCharm specific files
+
+# Environment variables
+.env
+*.env
+.flaskenv
+
+# Node.js and Frontend (for Tailwind CSS build process)
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+.parcel-cache/ # If you use Parcel
+dist/ # Common directory for compiled frontend assets (if you switch from `static/css/style.css` to a `dist` folder)
+
+# Compiled/Generated Tailwind CSS (if not in a managed 'static' folder)
+# If your compiled CSS is `static/css/style.css`, you might want to version control it.
+# However, if it's regenerated frequently or you only want source files in Git, uncomment this:
+# static/css/style.css
+
+# Log files
+*.log
+logs/
+*.txt # If temporary logs or generated text files are created
+
+# Operating System files
+.DS_Store # macOS
+.localized # macOS
+Thumbs.db # Windows
+desktop.ini # Windows
+
+# Custom folders to ignore
+extra/ # Ignoring the entire 'extra' folder as requested

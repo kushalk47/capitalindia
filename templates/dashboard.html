@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="text-4xl font-extrabold text-white text-center mb-8">TSLA Stock Performance</h1>
+
+<div class="bg-gray-800 p-6 rounded-lg shadow-xl mb-8">
+    <h2 class="text-2xl font-semibold text-white mb-4">Interactive Candlestick Chart</h2>
+    <div id="chart-container" class="w-full h-[600px] bg-gray-900 rounded-lg"></div>
+    <div class="mt-4 text-center">
+        <button id="analyze-chart-btn"
+                class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300">
+            Analyze Chart with AI
+        </button>
+    </div>
+</div>
+
+<div class="bg-gray-800 p-6 rounded-lg shadow-xl mb-8">
+    <h2 class="text-2xl font-semibold text-white mb-4">Key Metrics</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-gray-700 p-4 rounded-md text-center">
+            <p class="text-gray-400 text-sm">Average Daily Volume</p>
+            <p id="avg-volume" class="text-green-400 text-xl font-bold">Loading...</p>
+        </div>
+        <div class="bg-gray-700 p-4 rounded-md text-center">
+            <p class="text-gray-400 text-sm">Total Trading Days</p>
+            <p id="total-days" class="text-blue-400 text-xl font-bold">Loading...</p>
+        </div>
+        <div class="bg-gray-700 p-4 rounded-md text-center">
+            <p class="text-gray-400 text-sm">First Data Point</p>
+            <p id="first-date" class="text-purple-400 text-xl font-bold">Loading...</p>
+        </div>
+        <div class="bg-gray-700 p-4 rounded-md text-center">
+            <p class="text-gray-400 text-sm">Last Data Point</p>
+            <p id="last-date" class="text-orange-400 text-xl font-bold">Loading...</p>
+        </div>
+    </div>
+</div>
+
+<div id="analysis-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-50">
+    <div class="bg-gray-900 p-8 rounded-lg shadow-2xl w-11/12 md:w-2/3 lg:w-1/2 relative">
+        <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
+        <h2 class="text-3xl font-bold text-white mb-6">AI Chart Analysis</h2>
+        <div id="analysis-content" class="text-gray-300 text-lg overflow-y-auto h-96 custom-scrollbar">
+            <p>Loading analysis...</p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #333;
+        border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #555;
+        border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #777;
+    }
+</style>
+
+
+<script src="https://unpkg.com/lightweight-charts@4.1.2/dist/lightweight-charts.standalone.production.js"></script>
+<script src="https://unpkg.com/html2canvas@1.0.0-rc.5/dist/html2canvas.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const chartContainer = document.getElementById('chart-container');
+        const analyzeButton = document.getElementById('analyze-chart-btn');
+        const analysisModal = document.getElementById('analysis-modal');
+        const closeModalButton = document.getElementById('close-modal-btn');
+        const analysisContent = document.getElementById('analysis-content');
+
+        // Function to format Gemini's markdown response (asterisks for bold/italic)
+        const formatGeminiResponse = (text) => {
+            // Replace **bold** with <strong>bold</strong>
+            let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            // Replace *italic* with <em>italic</em>
+            formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            // Replace newlines with <br> for proper line breaks in HTML
+            formattedText = formattedText.replace(/\n/g, '<br>');
+            return formattedText;
+        };
+
+        // Create the chart instance (rest of the chart config remains the same)
+        const chart = LightweightCharts.createChart(chartContainer, {
+            width: chartContainer.offsetWidth,
+            height: 600,
+            layout: {
+                background: { type: 'solid', color: '#1a202c' },
+                textColor: '#CBD5E0',
+            },
+            grid: {
+                vertLines: { color: 'rgba(200, 200, 200, 0.05)' },
+                horzLines: { color: 'rgba(200, 200, 200, 0.05)' },
+            },
+            timeScale: {
+                timeVisible: true,
+                secondsVisible: false,
+                borderVisible: false,
+                rightOffset: 12,
+            },
+            crosshair: {
+                mode: LightweightCharts.CrosshairMode.Normal,
+            },
+            priceScale: {
+                borderVisible: false,
+                scaleMargins: {
+                    top: 0.1,
+                    bottom: 0.1,
+                },
+            },
+            localization: {
+                locale: 'en-US',
+                dateFormat: 'yyyy-MM-dd',
+            },
+        });
+
+        const candlestickSeries = chart.addCandlestickSeries({
+            upColor: '#4CAF50',
+            downColor: '#EF4444',
+            borderUpColor: '#4CAF50',
+            borderDownColor: '#EF4444',
+            wickUpColor: '#4CAF50',
+            wickDownColor: '#EF4444',
+        });
+
+        const volumeSeries = chart.addHistogramSeries({
+            color: '#26A69A',
+            priceFormat: {
+                type: 'volume',
+            },
+            priceScaleId: 'volume_scale',
+        });
+        chart.priceScale('volume_scale').applyOptions({
+            scaleMargins: {
+                top: 0.8,
+                bottom: 0,
+            },
+            borderVisible: false,
+        });
+
+        try {
+            const response = await fetch('/api/stock_data');
+            const data = await response.json();
+
+            if (!data || data.error) {
+                console.error("Error fetching data:", data ? data.error : "Unknown error");
+                return;
+            }
+
+            const candlestickData = data.map(item => ({
+                time: item.time, open: item.open, high: item.high, low: item.low, close: item.close
+            }));
+            candlestickSeries.setData(candlestickData);
+
+            const volumeData = data.map(item => ({
+                time: item.time, value: item.volume,
+                color: item.close >= item.open ? 'rgba(76, 175, 80, 0.4)' : 'rgba(239, 68, 68, 0.4)'
+            }));
+            volumeSeries.setData(volumeData);
+
+
+            const markers = [];
+            data.forEach(item => {
+                let position = 'inBar';
+                let color = '#FFD700'; // Yellow for No Signal
+                let shape = 'circle';
+                let price = (item.open + item.close) / 2;
+
+                if (item.direction === 'LONG') {
+                    position = 'belowBar';
+                    color = '#4CAF50'; // Green
+                    shape = 'arrowUp';
+                    price = item.low;
+                } else if (item.direction === 'SHORT') {
+                    position = 'aboveBar';
+                    color = '#EF4444'; // Red
+                    shape = 'arrowDown';
+                    price = item.high;
+                }
+
+                markers.push({
+                    time: item.time,
+                    position: position,
+                    color: color,
+                    shape: shape,
+                    size: 1.5
+                });
+            });
+            candlestickSeries.setMarkers(markers);
+
+            const allSupportValues = new Set();
+            const allResistanceValues = new Set();
+
+            data.forEach(item => {
+                if (item.support_lower !== null) allSupportValues.add(item.support_lower);
+                if (item.support_upper !== null) allSupportValues.add(item.support_upper);
+                if (item.resistance_lower !== null) allResistanceValues.add(item.resistance_lower);
+                if (item.resistance_upper !== null) allResistanceValues.add(item.resistance_upper);
+            });
+
+            allSupportValues.forEach(value => {
+                candlestickSeries.createPriceLine({
+                    price: value,
+                    color: 'rgba(0, 128, 0, 0.2)',
+                    lineWidth: 1,
+                    lineStyle: LightweightCharts.LineStyle.Dashed,
+                    axisLabelVisible: false,
+                    title: `Support: ${value.toFixed(2)}`,
+                });
+            });
+
+            allResistanceValues.forEach(value => {
+                candlestickSeries.createPriceLine({
+                    price: value,
+                    color: 'rgba(255, 0, 0, 0.2)',
+                    lineWidth: 1,
+                    lineStyle: LightweightCharts.LineStyle.Dashed,
+                    axisLabelVisible: false,
+                    title: `Resistance: ${value.toFixed(2)}`,
+                });
+            });
+
+            const totalVolume = data.reduce((sum, item) => sum + item.volume, 0);
+            const avgVolume = totalVolume / data.length;
+            document.getElementById('avg-volume').textContent = avgVolume.toFixed(2);
+            document.getElementById('total-days').textContent = data.length;
+            document.getElementById('first-date').textContent = data.length > 0 ? data[0].time : 'N/A';
+            document.getElementById('last-date').textContent = data.length > 0 ? data[data.length - 1].time : 'N/A';
+
+        } catch (error) {
+            console.error("Failed to load stock data:", error);
+        }
+
+        new ResizeObserver(entries => {
+            if (entries.length === 0 || entries[0].contentRect.width === 0) return;
+            chart.applyOptions({ width: entries[0].contentRect.width });
+        }).observe(chartContainer);
+
+
+        // --- Chart Analysis with AI Logic ---
+        analyzeButton.addEventListener('click', async () => {
+            analysisModal.classList.remove('hidden'); // Show modal
+            analysisContent.innerHTML = '<p class="text-center text-blue-400 animate-pulse">Capturing chart and sending to AI for analysis... This may take a moment.</p>';
+
+            try {
+                // html2canvas captures the div containing the chart
+                const canvas = await html2canvas(chartContainer, {
+                    useCORS: true, // Important if chart elements are loaded from external origins
+                    backgroundColor: null, // Transparent background if needed, or match chart bg
+                });
+
+                // Get base64 encoded image data
+                const imageData = canvas.toDataURL('image/png').split(',')[1]; // Remove "data:image/png;base64," prefix
+
+                const response = await fetch('/api/analyze_chart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image_data: imageData,
+                        user_query: "Analyze this stock chart for technical patterns and provide a short-term price prediction based on candlestick patterns, volume, and support/resistance levels. State any assumptions and remind the user this is not financial advice."
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                // Apply the formatting function here
+                analysisContent.innerHTML = `<p>${formatGeminiResponse(data.response)}</p>`; // Display analysis
+            } catch (error) {
+                console.error("Error analyzing chart:", error);
+                analysisContent.innerHTML = `<p class="text-red-400">Failed to analyze chart: ${error.message}. Please try again.</p>`;
+            }
+        });
+
+        closeModalButton.addEventListener('click', () => {
+            analysisModal.classList.add('hidden'); // Hide modal
+        });
+
+        // Hide modal if clicked outside content
+        analysisModal.addEventListener('click', (e) => {
+            if (e.target === analysisModal) {
+                analysisModal.classList.add('hidden');
+            }
+        });
+    });
+</script>
+{% endblock %}
