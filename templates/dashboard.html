@@ -6,9 +6,31 @@
 <div class="bg-gray-800 p-6 rounded-lg shadow-xl mb-8">
     <h2 class="text-2xl font-semibold text-white mb-4">Interactive Candlestick Chart</h2>
     <div id="chart-container" class="w-full h-[600px] bg-gray-900 rounded-lg"></div>
+
+    <div class="mt-4 text-center">
+        <h3 class="text-xl font-semibold text-white mb-3">Indicators & Markers</h3>
+        <div class="inline-flex rounded-md shadow-sm" role="group">
+            <button id="toggle-volume-btn" type="button"
+                    class="px-4 py-2 text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded-l-lg hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white">
+                Volume
+            </button>
+            <button id="toggle-markers-btn" type="button"
+                    class="px-4 py-2 text-sm font-medium text-white bg-gray-700 border-t border-b border-gray-600 hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white">
+                Series Markers
+            </button>
+            <button id="toggle-bb-btn" type="button"
+                    class="px-4 py-2 text-sm font-medium text-white bg-gray-700 border-t border-b border-gray-600 hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white">
+                Bollinger Bands
+            </button>
+            <button id="toggle-sr-btn" type="button"
+                    class="px-4 py-2 text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded-r-lg hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white">
+                Support/Resistance
+            </button>
+        </div>
+    </div>
     <div class="mt-4 text-center">
         <button id="analyze-chart-btn"
-                class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300">
+                class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 mt-4">
             Analyze Chart with AI
         </button>
     </div>
@@ -61,6 +83,12 @@
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: #777;
     }
+
+    /* Style for active toggle buttons */
+    .toggle-active {
+        background-color: #4F46E5 !important; /* Indigo-600 */
+        border-color: #4F46E5 !important;
+    }
 </style>
 
 
@@ -74,6 +102,19 @@
         const analysisModal = document.getElementById('analysis-modal');
         const closeModalButton = document.getElementById('close-modal-btn');
         const analysisContent = document.getElementById('analysis-content');
+
+        // Toggle Buttons
+        const toggleVolumeBtn = document.getElementById('toggle-volume-btn');
+        const toggleMarkersBtn = document.getElementById('toggle-markers-btn');
+        const toggleBbBtn = document.getElementById('toggle-bb-btn');
+        const toggleSrBtn = document.getElementById('toggle-sr-btn'); // NEW: Support/Resistance toggle
+
+        // Initial states
+        let isVolumeVisible = true;
+        let isMarkersVisible = true;
+        let isBbVisible = true;
+        let isSrVisible = true; // NEW: Support/Resistance visibility state
+
 
         // Function to format Gemini's markdown response (asterisks for bold/italic)
         const formatGeminiResponse = (text) => {
@@ -95,8 +136,8 @@
                 textColor: '#CBD5E0',
             },
             grid: {
-                vertLines: { color: 'rgba(200, 200, 200, 0.05)' },
-                horzLines: { color: 'rgba(200, 200, 200, 0.05)' },
+                vertLines: { color: 'transparent', visible: false }, // MODIFIED: Set color to transparent
+                horzLines: { color: 'transparent', visible: false }, // MODIFIED: Set color to transparent
             },
             timeScale: {
                 timeVisible: true,
@@ -110,8 +151,8 @@
             priceScale: {
                 borderVisible: false,
                 scaleMargins: {
-                    top: 0.1,
-                    bottom: 0.1,
+                    top: 0.15, // Increased from 0.1
+                    bottom: 0.15, // Increased from 0.1
                 },
             },
             localization: {
@@ -144,6 +185,48 @@
             borderVisible: false,
         });
 
+        // --- Bollinger Band Series ---
+        const bollingerUpperSeries = chart.addLineSeries({
+            color: '#FF6F00', // Orange
+            lineWidth: 1,
+            crosshairMarkerVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
+        });
+
+        const bollingerLowerSeries = chart.addLineSeries({
+            color: '#FF6F00', // Orange
+            lineWidth: 1,
+            crosshairMarkerVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
+        });
+
+        const bollingerMiddleSeries = chart.addLineSeries({
+            color: '#80CBC4', // Teal for SMA
+            lineWidth: 1,
+            crosshairMarkerVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
+        });
+
+        const bollingerBandArea = chart.addAreaSeries({
+            topColor: 'rgba(255, 111, 0, 0.1)', // Light orange transparent
+            bottomColor: 'rgba(255, 111, 0, 0.05)', // Even lighter orange transparent
+            lineColor: 'transparent', // Don't draw a line for the area itself
+            lineWidth: 0,
+            crosshairMarkerVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
+        });
+
+        // Store original markers for toggling
+        let originalMarkers = [];
+        // Store price lines for support and resistance for toggling
+        let priceLinesSupport = [];
+        let priceLinesResistance = [];
+
+
         try {
             const response = await fetch('/api/stock_data');
             const data = await response.json();
@@ -165,7 +248,7 @@
             volumeSeries.setData(volumeData);
 
 
-            const markers = [];
+            // Generate markers and store them
             data.forEach(item => {
                 let position = 'inBar';
                 let color = '#FFD700'; // Yellow for No Signal
@@ -184,7 +267,7 @@
                     price = item.high;
                 }
 
-                markers.push({
+                originalMarkers.push({
                     time: item.time,
                     position: position,
                     color: color,
@@ -192,8 +275,10 @@
                     size: 1.5
                 });
             });
-            candlestickSeries.setMarkers(markers);
+            candlestickSeries.setMarkers(originalMarkers); // Set initially
 
+
+            // Collect all unique support and resistance values
             const allSupportValues = new Set();
             const allResistanceValues = new Set();
 
@@ -204,27 +289,67 @@
                 if (item.resistance_upper !== null) allResistanceValues.add(item.resistance_upper);
             });
 
+            // Add support lines
             allSupportValues.forEach(value => {
-                candlestickSeries.createPriceLine({
+                const line = candlestickSeries.createPriceLine({
                     price: value,
-                    color: 'rgba(0, 128, 0, 0.2)',
-                    lineWidth: 1,
-                    lineStyle: LightweightCharts.LineStyle.Dashed,
+                    color: 'rgba(0, 128, 0, 0.2)', // Green, more transparent
+                    lineWidth: 2,
+                    lineStyle: LightweightCharts.LineStyle.Solid,
                     axisLabelVisible: false,
                     title: `Support: ${value.toFixed(2)}`,
                 });
+                priceLinesSupport.push(line);
             });
 
+            // Add resistance lines
             allResistanceValues.forEach(value => {
-                candlestickSeries.createPriceLine({
+                const line = candlestickSeries.createPriceLine({
                     price: value,
-                    color: 'rgba(255, 0, 0, 0.2)',
-                    lineWidth: 1,
-                    lineStyle: LightweightCharts.LineStyle.Dashed,
+                    color: 'rgba(255, 0, 0, 0.2)', // Red, more transparent
+                    lineWidth: 2,
+                    lineStyle: LightweightCharts.LineStyle.Solid,
                     axisLabelVisible: false,
                     title: `Resistance: ${value.toFixed(2)}`,
                 });
+                priceLinesResistance.push(line);
             });
+
+
+            // --- Bollinger Band Calculation and Setting Data ---
+            const period = 20; // Common Bollinger Band period
+            const multiplier = 2; // Common standard deviation multiplier
+
+            const closePrices = data.map(item => item.close);
+            const bbData = [];
+
+            for (let i = period - 1; i < data.length; i++) {
+                const slice = closePrices.slice(i - period + 1, i + 1);
+                const sma = slice.reduce((sum, val) => sum + val, 0) / period;
+                const stdDev = Math.sqrt(slice.reduce((sum, val) => sum + Math.pow(val - sma, 2), 0) / period);
+
+                const upper = sma + (stdDev * multiplier);
+                const lower = sma - (stdDev * multiplier);
+
+                bbData.push({
+                    time: data[i].time,
+                    top: upper,
+                    bottom: lower,
+                    value: sma // For the middle line
+                });
+            }
+
+            bollingerUpperSeries.setData(bbData.map(d => ({ time: d.time, value: d.top })));
+            bollingerLowerSeries.setData(bbData.map(d => ({ time: d.time, value: d.bottom })));
+            bollingerMiddleSeries.setData(bbData.map(d => ({ time: d.time, value: d.value })));
+            bollingerBandArea.setData(bbData.map(d => ({ time: d.time, value: d.value })));
+
+            // Initialize button styles to active (visible by default)
+            toggleVolumeBtn.classList.add('toggle-active');
+            toggleMarkersBtn.classList.add('toggle-active');
+            toggleBbBtn.classList.add('toggle-active');
+            toggleSrBtn.classList.add('toggle-active'); // NEW: Support/Resistance button active
+
 
             const totalVolume = data.reduce((sum, item) => sum + item.volume, 0);
             const avgVolume = totalVolume / data.length;
@@ -243,20 +368,54 @@
         }).observe(chartContainer);
 
 
+        // --- Toggle Functionality ---
+
+        // Toggle Volume
+        toggleVolumeBtn.addEventListener('click', () => {
+            isVolumeVisible = !isVolumeVisible;
+            volumeSeries.applyOptions({ visible: isVolumeVisible });
+            toggleVolumeBtn.classList.toggle('toggle-active', isVolumeVisible);
+        });
+
+        // Toggle Series Markers
+        toggleMarkersBtn.addEventListener('click', () => {
+            isMarkersVisible = !isMarkersVisible;
+            candlestickSeries.setMarkers(isMarkersVisible ? originalMarkers : []);
+            toggleMarkersBtn.classList.toggle('toggle-active', isMarkersVisible);
+        });
+
+        // Toggle Bollinger Bands
+        toggleBbBtn.addEventListener('click', () => {
+            isBbVisible = !isBbVisible;
+            bollingerUpperSeries.applyOptions({ visible: isBbVisible });
+            bollingerLowerSeries.applyOptions({ visible: isBbVisible });
+            bollingerMiddleSeries.applyOptions({ visible: isBbVisible });
+            bollingerBandArea.applyOptions({ visible: isBbVisible });
+            toggleBbBtn.classList.toggle('toggle-active', isBbVisible);
+        });
+
+        // NEW: Toggle Support/Resistance
+        toggleSrBtn.addEventListener('click', () => {
+            isSrVisible = !isSrVisible;
+            // Iterate through all stored price lines and apply visibility
+            priceLinesSupport.forEach(line => line.applyOptions({ visible: isSrVisible }));
+            priceLinesResistance.forEach(line => line.applyOptions({ visible: isSrVisible }));
+            toggleSrBtn.classList.toggle('toggle-active', isSrVisible);
+        });
+
+
         // --- Chart Analysis with AI Logic ---
         analyzeButton.addEventListener('click', async () => {
             analysisModal.classList.remove('hidden'); // Show modal
             analysisContent.innerHTML = '<p class="text-center text-blue-400 animate-pulse">Capturing chart and sending to AI for analysis... This may take a moment.</p>';
 
             try {
-                // html2canvas captures the div containing the chart
                 const canvas = await html2canvas(chartContainer, {
-                    useCORS: true, // Important if chart elements are loaded from external origins
-                    backgroundColor: null, // Transparent background if needed, or match chart bg
+                    useCORS: true,
+                    backgroundColor: null,
                 });
 
-                // Get base64 encoded image data
-                const imageData = canvas.toDataURL('image/png').split(',')[1]; // Remove "data:image/png;base64," prefix
+                const imageData = canvas.toDataURL('image/png').split(',')[1];
 
                 const response = await fetch('/api/analyze_chart', {
                     method: 'POST',
@@ -274,8 +433,7 @@
                 }
 
                 const data = await response.json();
-                // Apply the formatting function here
-                analysisContent.innerHTML = `<p>${formatGeminiResponse(data.response)}</p>`; // Display analysis
+                analysisContent.innerHTML = `<p>${formatGeminiResponse(data.response)}</p>`;
             } catch (error) {
                 console.error("Error analyzing chart:", error);
                 analysisContent.innerHTML = `<p class="text-red-400">Failed to analyze chart: ${error.message}. Please try again.</p>`;
@@ -283,10 +441,9 @@
         });
 
         closeModalButton.addEventListener('click', () => {
-            analysisModal.classList.add('hidden'); // Hide modal
+            analysisModal.classList.add('hidden');
         });
 
-        // Hide modal if clicked outside content
         analysisModal.addEventListener('click', (e) => {
             if (e.target === analysisModal) {
                 analysisModal.classList.add('hidden');
