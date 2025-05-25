@@ -8,31 +8,33 @@
     <div id="chart-container" class="w-full h-[600px] bg-gray-900 rounded-lg"></div>
 
     <div class="mt-4 text-center">
-        <h3 class="text-xl font-semibold text-white mb-3">Indicators & Markers</h3>
-        <div class="inline-flex rounded-md shadow-sm" role="group">
+        <h3 class="text-xl font-semibold text-white mb-3">Analysis Tools</h3>
+        <div class="inline-flex rounded-md shadow-sm flex-wrap justify-center gap-2" role="group">
+            <button id="analyze-chart-btn"
+                    class="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-purple-600 rounded-lg hover:bg-purple-700 focus:z-10 focus:ring-2 focus:ring-purple-700 focus:text-white transition duration-300">
+                Analyze with AI
+            </button>
+            <a href="/chatbot" id="chatbot-link"
+               class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-white transition duration-300 flex items-center justify-center">
+                Chatbot
+            </a>
             <button id="toggle-volume-btn" type="button"
-                    class="px-4 py-2 text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded-l-lg hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white">
+                    class="px-4 py-2 text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white toggle-active">
                 Volume
             </button>
             <button id="toggle-markers-btn" type="button"
-                    class="px-4 py-2 text-sm font-medium text-white bg-gray-700 border-t border-b border-gray-600 hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white">
+                    class="px-4 py-2 text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white toggle-active">
                 Series Markers
             </button>
             <button id="toggle-bb-btn" type="button"
-                    class="px-4 py-2 text-sm font-medium text-white bg-gray-700 border-t border-b border-gray-600 hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white">
+                    class="px-4 py-2 text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white toggle-active">
                 Bollinger Bands
             </button>
             <button id="toggle-sr-btn" type="button"
-                    class="px-4 py-2 text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded-r-lg hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white">
+                    class="px-4 py-2 text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white toggle-active">
                 Support/Resistance
             </button>
         </div>
-    </div>
-    <div class="mt-4 text-center">
-        <button id="analyze-chart-btn"
-                class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 mt-4">
-            Analyze Chart with AI
-        </button>
     </div>
 </div>
 
