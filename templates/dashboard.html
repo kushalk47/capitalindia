@@ -31,7 +31,7 @@
                 Bollinger Bands
             </button>
             <button id="toggle-sr-btn" type="button"
-                    class="px-4 py-2 text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white toggle-active">
+                    class="px-4 py-2 text-sm font-medium text-white bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-blue-500 dark:focus:text-white">
                 Support/Resistance
             </button>
         </div>
@@ -54,7 +54,6 @@
             <p id="first-date" class="text-purple-400 text-xl font-bold">Loading...</p>
         </div>
         <div class="bg-gray-700 p-4 rounded-md text-center">
-            <p class="text-gray-400 text-sm">Last Data Point</p>
             <p id="last-date" class="text-orange-400 text-xl font-bold">Loading...</p>
         </div>
     </div>
@@ -109,13 +108,13 @@
         const toggleVolumeBtn = document.getElementById('toggle-volume-btn');
         const toggleMarkersBtn = document.getElementById('toggle-markers-btn');
         const toggleBbBtn = document.getElementById('toggle-bb-btn');
-        const toggleSrBtn = document.getElementById('toggle-sr-btn'); // NEW: Support/Resistance toggle
+        const toggleSrBtn = document.getElementById('toggle-sr-btn');
 
-        // Initial states
+        // Initial states - Support/Resistance is now OFF by default
         let isVolumeVisible = true;
         let isMarkersVisible = true;
         let isBbVisible = true;
-        let isSrVisible = true; // NEW: Support/Resistance visibility state
+        let isSrVisible = false; // Changed to false
 
 
         // Function to format Gemini's markdown response (asterisks for bold/italic)
@@ -129,7 +128,7 @@
             return formattedText;
         };
 
-        // Create the chart instance (rest of the chart config remains the same)
+        // Create the chart instance
         const chart = LightweightCharts.createChart(chartContainer, {
             width: chartContainer.offsetWidth,
             height: 600,
@@ -138,8 +137,9 @@
                 textColor: '#CBD5E0',
             },
             grid: {
-                vertLines: { color: 'transparent', visible: false }, // MODIFIED: Set color to transparent
-                horzLines: { color: 'transparent', visible: false }, // MODIFIED: Set color to transparent
+                // Ensure grid lines are not visible
+                vertLines: { color: 'transparent', visible: false },
+                horzLines: { color: 'transparent', visible: false },
             },
             timeScale: {
                 timeVisible: true,
@@ -153,8 +153,8 @@
             priceScale: {
                 borderVisible: false,
                 scaleMargins: {
-                    top: 0.15, // Increased from 0.1
-                    bottom: 0.15, // Increased from 0.1
+                    top: 0.15,
+                    bottom: 0.15,
                 },
             },
             localization: {
@@ -215,18 +215,75 @@
         const bollingerBandArea = chart.addAreaSeries({
             topColor: 'rgba(255, 111, 0, 0.1)', // Light orange transparent
             bottomColor: 'rgba(255, 111, 0, 0.05)', // Even lighter orange transparent
-            lineColor: 'transparent', // Don't draw a line for the area itself
+            lineColor: 'transparent',
             lineWidth: 0,
             crosshairMarkerVisible: false,
             lastValueVisible: false,
             priceLineVisible: false,
         });
 
+        // --- Support and Resistance Band Series ---
+        const supportUpperSeries = chart.addLineSeries({
+            color: 'rgba(0, 150, 0, 0.7)', // Darker Green for Support band upper line
+            lineWidth: 1,
+            crosshairMarkerVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
+            visible: isSrVisible // Initial visibility
+        });
+
+        const supportLowerSeries = chart.addLineSeries({
+            color: 'rgba(0, 150, 0, 0.7)', // Darker Green for Support band lower line
+            lineWidth: 1,
+            crosshairMarkerVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
+            visible: isSrVisible // Initial visibility
+        });
+
+        const supportBandArea = chart.addAreaSeries({
+            topColor: 'rgba(0, 128, 0, 0.2)', // Light green transparent fill
+            bottomColor: 'rgba(0, 128, 0, 0.1)', // Even lighter green transparent fill
+            lineColor: 'transparent',
+            lineWidth: 0,
+            crosshairMarkerVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
+            visible: isSrVisible // Initial visibility
+        });
+
+        const resistanceUpperSeries = chart.addLineSeries({
+            color: 'rgba(150, 0, 0, 0.7)', // Darker Red for Resistance band upper line
+            lineWidth: 1,
+            crosshairMarkerVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
+            visible: isSrVisible // Initial visibility
+        });
+
+        const resistanceLowerSeries = chart.addLineSeries({
+            color: 'rgba(150, 0, 0, 0.7)', // Darker Red for Resistance band lower line
+            lineWidth: 1,
+            crosshairMarkerVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
+            visible: isSrVisible // Initial visibility
+        });
+
+        const resistanceBandArea = chart.addAreaSeries({
+            topColor: 'rgba(255, 0, 0, 0.2)', // Light red transparent fill
+            bottomColor: 'rgba(255, 0, 0, 0.1)', // Even lighter red transparent fill
+            lineColor: 'transparent',
+            lineWidth: 0,
+            crosshairMarkerVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
+            visible: isSrVisible // Initial visibility
+        });
+
+
         // Store original markers for toggling
         let originalMarkers = [];
-        // Store price lines for support and resistance for toggling
-        let priceLinesSupport = [];
-        let priceLinesResistance = [];
 
 
         try {
@@ -277,45 +334,7 @@
                     size: 1.5
                 });
             });
-            candlestickSeries.setMarkers(originalMarkers); // Set initially
-
-
-            // Collect all unique support and resistance values
-            const allSupportValues = new Set();
-            const allResistanceValues = new Set();
-
-            data.forEach(item => {
-                if (item.support_lower !== null) allSupportValues.add(item.support_lower);
-                if (item.support_upper !== null) allSupportValues.add(item.support_upper);
-                if (item.resistance_lower !== null) allResistanceValues.add(item.resistance_lower);
-                if (item.resistance_upper !== null) allResistanceValues.add(item.resistance_upper);
-            });
-
-            // Add support lines
-            allSupportValues.forEach(value => {
-                const line = candlestickSeries.createPriceLine({
-                    price: value,
-                    color: 'rgba(0, 128, 0, 0.2)', // Green, more transparent
-                    lineWidth: 2,
-                    lineStyle: LightweightCharts.LineStyle.Solid,
-                    axisLabelVisible: false,
-                    title: `Support: ${value.toFixed(2)}`,
-                });
-                priceLinesSupport.push(line);
-            });
-
-            // Add resistance lines
-            allResistanceValues.forEach(value => {
-                const line = candlestickSeries.createPriceLine({
-                    price: value,
-                    color: 'rgba(255, 0, 0, 0.2)', // Red, more transparent
-                    lineWidth: 2,
-                    lineStyle: LightweightCharts.LineStyle.Solid,
-                    axisLabelVisible: false,
-                    title: `Resistance: ${value.toFixed(2)}`,
-                });
-                priceLinesResistance.push(line);
-            });
+            candlestickSeries.setMarkers(originalMarkers);
 
 
             // --- Bollinger Band Calculation and Setting Data ---
@@ -337,7 +356,7 @@
                     time: data[i].time,
                     top: upper,
                     bottom: lower,
-                    value: sma // For the middle line
+                    value: sma
                 });
             }
 
@@ -346,11 +365,38 @@
             bollingerMiddleSeries.setData(bbData.map(d => ({ time: d.time, value: d.value })));
             bollingerBandArea.setData(bbData.map(d => ({ time: d.time, value: d.value })));
 
-            // Initialize button styles to active (visible by default)
+
+            // --- Support and Resistance Band Data Setup ---
+            // IMPORTANT: This assumes your /api/stock_data now provides 'support_upper', 'support_lower',
+            // 'resistance_upper', and 'resistance_lower' values for each data point.
+            // These values MUST be within the correct price range for the chart to scale properly.
+            const srBandData = data.map(item => ({
+                time: item.time,
+                supportUpper: item.support_upper,
+                supportLower: item.support_lower,
+                resistanceUpper: item.resistance_upper,
+                resistanceLower: item.resistance_lower,
+            })).filter(d =>
+                d.supportUpper !== undefined && d.supportLower !== undefined &&
+                d.resistanceUpper !== undefined && d.resistanceLower !== undefined &&
+                d.supportUpper !== null && d.supportLower !== null && // Filter out nulls as well
+                d.resistanceUpper !== null && d.resistanceLower !== null
+            );
+
+            supportUpperSeries.setData(srBandData.map(d => ({ time: d.time, value: d.supportUpper })));
+            supportLowerSeries.setData(srBandData.map(d => ({ time: d.time, value: d.supportLower })));
+            supportBandArea.setData(srBandData.map(d => ({ time: d.time, value: d.supportUpper }))); // Use one of the band lines for area value
+
+            resistanceUpperSeries.setData(srBandData.map(d => ({ time: d.time, value: d.resistanceUpper })));
+            resistanceLowerSeries.setData(srBandData.map(d => ({ time: d.time, value: d.resistanceLower })));
+            resistanceBandArea.setData(srBandData.map(d => ({ time: d.time, value: d.resistanceUpper })));
+
+
+            // Initialize button styles to active (visible by default), except for S/R
             toggleVolumeBtn.classList.add('toggle-active');
             toggleMarkersBtn.classList.add('toggle-active');
             toggleBbBtn.classList.add('toggle-active');
-            toggleSrBtn.classList.add('toggle-active'); // NEW: Support/Resistance button active
+            // toggleSrBtn is NOT added to 'toggle-active' by default
 
 
             const totalVolume = data.reduce((sum, item) => sum + item.volume, 0);
@@ -396,12 +442,15 @@
             toggleBbBtn.classList.toggle('toggle-active', isBbVisible);
         });
 
-        // NEW: Toggle Support/Resistance
+        // Toggle Support/Resistance Bands
         toggleSrBtn.addEventListener('click', () => {
             isSrVisible = !isSrVisible;
-            // Iterate through all stored price lines and apply visibility
-            priceLinesSupport.forEach(line => line.applyOptions({ visible: isSrVisible }));
-            priceLinesResistance.forEach(line => line.applyOptions({ visible: isSrVisible }));
+            supportUpperSeries.applyOptions({ visible: isSrVisible });
+            supportLowerSeries.applyOptions({ visible: isSrVisible });
+            supportBandArea.applyOptions({ visible: isSrVisible });
+            resistanceUpperSeries.applyOptions({ visible: isSrVisible });
+            resistanceLowerSeries.applyOptions({ visible: isSrVisible });
+            resistanceBandArea.applyOptions({ visible: isSrVisible });
             toggleSrBtn.classList.toggle('toggle-active', isSrVisible);
         });
 
