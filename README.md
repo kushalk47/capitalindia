@@ -9,7 +9,6 @@ Database Integration: Stores and queries Tesla stock data for accurate and real-
 Candlestick Pattern Analysis: Identifies key patterns, such as resistance levels, to support technical stock analysis.
 FastAPI Backend: Provides a robust and scalable API for handling user requests and responses.
 
-Project Structure
 capitalindia/
 ├── chatbotervice/
 │   ├── chatbot.py       # Main chatbot logic for handling user queries and responses
